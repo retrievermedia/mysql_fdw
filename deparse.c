@@ -2534,10 +2534,12 @@ mysql_append_limit_clause(deparse_expr_cxt *context)
 		appendStringInfoString(buf, " LIMIT ");
 		deparseExpr((Expr *) root->parse->limitCount, context);
 
-		if (c && !c->constisnull)
+		if (c/* && !c->constisnull*/)
 		{
 			appendStringInfoString(buf, " OFFSET ");
 			deparseExpr((Expr *) c, context);
+		} else {
+			appendStringInfoString(buf, "/* NO OFFSET :? */");
 		}
 	}
 }
