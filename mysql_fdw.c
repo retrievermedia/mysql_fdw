@@ -2685,7 +2685,10 @@ mysql_error_print(MYSQL *conn)
 static void
 mysql_stmt_error_print(MySQLFdwExecState *festate, const char *msg)
 {
-	switch (mysql_stmt_errno(festate->stmt))
+  unsigned int err_no = mysql_stmt_errno(festate->stmt);
+  ereport(NOTICE, (0, errmsg("Got error code: %d", err_no)));
+
+	switch (err_no)
 	{
 		case CR_NO_ERROR:
 			/* Should not happen, though give some message */
@@ -2695,16 +2698,16 @@ mysql_stmt_error_print(MySQLFdwExecState *festate, const char *msg)
 		case CR_SERVER_GONE_ERROR:
 		case CR_SERVER_LOST:
 		case CR_UNKNOWN_ERROR:
-			mysql_release_connection(festate->conn);
 			ereport(ERROR,
 					(errcode(ERRCODE_FDW_UNABLE_TO_CREATE_EXECUTION),
-					 errmsg("%s: \n%s", msg, mysql_error(festate->conn))));
+					 errmsg("%s: \n%s (%d)\n\nQuery: %s", msg, mysql_error(festate->conn), err_no, festate->query)));
+			mysql_release_connection(festate->conn);
 			break;
 		case CR_COMMANDS_OUT_OF_SYNC:
 		default:
 			ereport(ERROR,
 					(errcode(ERRCODE_FDW_UNABLE_TO_CREATE_EXECUTION),
-					 errmsg("%s: \n%s", msg, mysql_error(festate->conn))));
+					 errmsg("%s: \n%s (%d)\n\nQuery: %s", msg, mysql_error(festate->conn), err_no, festate->query)));
 			break;
 	}
 }
